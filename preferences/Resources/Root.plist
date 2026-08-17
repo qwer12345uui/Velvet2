@@ -34,6 +34,30 @@
 			systemIcon = "ellipsis";
 		},
 		{
+			cell = PSGroupCell;
+			label = "Widgets";
+		},
+		{
+			cell = PSSwitchCell;
+			cellClass = Velvet2Switch;
+			cellSubtitleText = "Only verified WidgetKit hosts are styled";
+			default = 0;
+			defaults = "com.noisyflake.velvet2";
+			key = widgetsEnabled;
+			label = "Enable Widgets";
+			systemIcon = "square.grid.2x2";
+		},
+		{
+			cell = PSLinkCell;
+			cellClass = Velvet2SubtitleLinkCell;
+			cellSubtitleText = "Background, border, glow, line and corners";
+			isController = 1;
+			detail = Velvet2WidgetSettingsController;
+			label = "Widget Style";
+			systemIcon = "rectangle.3.group";
+			require = "widgetsEnabled";
+		},
+		{
 			cell = PSButtonCell;
 			cellClass = Velvet2Button;
 			action = resetSettings;

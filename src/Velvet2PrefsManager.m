@@ -58,7 +58,8 @@ static void sendUpdateNotification() {
         @"cornerRadiusCustom": @19,
         @"appIconHidden": @NO,
         @"appIconCornerRadiusCircle": @NO,
-        @"stackDimmingViewHidden": @NO
+        @"stackDimmingViewHidden": @NO,
+        @"widgetsEnabled": @NO
     }];
 
     CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL, (CFNotificationCallback)sendUpdateNotification, CFSTR("com.noisyflake.velvet2/preferenceUpdate"), NULL, CFNotificationSuspensionBehaviorCoalesce);
