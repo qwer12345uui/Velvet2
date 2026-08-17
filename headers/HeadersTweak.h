@@ -11,5 +11,6 @@
 #import "Velvet2/UIColor+Velvet.h"
 #import "Velvet2/Velvet2Colorizer.h"
 #import "Velvet2/Velvet2PrefsManager.h"
+#import "Velvet2/Velvet2WidgetStyler.h"
 
 #define SYSTEM_VERSION_LESS_THAN(v) ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] == NSOrderedAscending)

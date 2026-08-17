@@ -1,0 +1,95 @@
+name: Manual iOS 15 package build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.scheme }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scheme: rootless
+            theos_repo: theos/theos
+          - scheme: roothide
+            theos_repo: roothide/theos
+
+    steps:
+      - name: Check out Velvet2
+        uses: actions/checkout@v4
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl dpkg-dev git make perl rsync xz-utils
+
+      - name: Install Theos, toolchain, and iPhoneOS 15.6 SDK
+        env:
+          THEOS_REPO: ${{ matrix.theos_repo }}
+        run: |
+          set -euo pipefail
+          export THEOS="$RUNNER_TEMP/theos"
+          git clone --recursive "https://github.com/${THEOS_REPO}.git" "$THEOS"
+          mkdir -p "$THEOS/toolchain"
+          curl --fail --location --silent --show-error \
+            "https://github.com/L1ghtmann/llvm-project/releases/download/test-210562a/iOSToolchain-x86_64.tar.xz" \
+            | tar -xJ -C "$THEOS/toolchain"
+          THEOS="$THEOS" "$THEOS/bin/install-sdk" 15.6
+          test -x "$THEOS/toolchain/linux/iphone/bin/clang"
+          test -d "$THEOS/sdks/iPhoneOS15.6.sdk"
+
+      - name: Build production DEB
+        env:
+          THEOS_PACKAGE_SCHEME: ${{ matrix.scheme }}
+        run: |
+          set -euo pipefail
+          export THEOS="$RUNNER_TEMP/theos"
+          make clean package ARCHS=arm64 FINALPACKAGE=1
+          mkdir -p "dist/${THEOS_PACKAGE_SCHEME}"
+          cp packages/*.deb "dist/${THEOS_PACKAGE_SCHEME}/"
+
+      - name: Audit package scheme and archive metadata
+        env:
+          THEOS_PACKAGE_SCHEME: ${{ matrix.scheme }}
+        run: |
+          set -euo pipefail
+          export THEOS="$RUNNER_TEMP/theos"
+          deb="$(find "dist/${THEOS_PACKAGE_SCHEME}" -name '*.deb' -print -quit)"
+          test -n "$deb"
+          dpkg-deb -I "$deb" | tee "dist/${THEOS_PACKAGE_SCHEME}/dpkg-deb-info.txt"
+          dpkg-deb -c "$deb" | tee "dist/${THEOS_PACKAGE_SCHEME}/dpkg-deb-contents.txt"
+          mkdir -p "dist/${THEOS_PACKAGE_SCHEME}/extracted"
+          dpkg-deb -x "$deb" "dist/${THEOS_PACKAGE_SCHEME}/extracted"
+
+          if [ "$THEOS_PACKAGE_SCHEME" = "rootless" ]; then
+            test -f "dist/rootless/extracted/var/jb/Library/MobileSubstrate/DynamicLibraries/Velvet2.dylib"
+            test -f "dist/rootless/extracted/var/jb/Library/PreferenceBundles/Velvet2.bundle/Velvet2"
+            ! test -e "dist/rootless/extracted/var/jb/var/jb"
+            ! grep -RIl '@loader_path/.jbroot' "dist/rootless/extracted"
+          else
+            test -f "dist/roothide/extracted/Library/MobileSubstrate/DynamicLibraries/Velvet2.dylib"
+            test -f "dist/roothide/extracted/Library/PreferenceBundles/Velvet2.bundle/Velvet2"
+            ! test -e "dist/roothide/extracted/var/jb"
+            ! grep -RIl '/var/jb\|/rootfs' "dist/roothide/extracted"
+          fi
+
+          find "dist/${THEOS_PACKAGE_SCHEME}/extracted" -type f -print0 | while IFS= read -r -d '' binary; do
+            if file "$binary" | grep -q 'Mach-O'; then
+              echo "### $binary" | tee -a "dist/${THEOS_PACKAGE_SCHEME}/macho-audit.txt"
+              "$THEOS/toolchain/linux/iphone/bin/llvm-lipo" -info "$binary" | tee -a "dist/${THEOS_PACKAGE_SCHEME}/macho-audit.txt"
+              "$THEOS/toolchain/linux/iphone/bin/llvm-objdump" --macho --dylibs-used "$binary" | tee -a "dist/${THEOS_PACKAGE_SCHEME}/macho-audit.txt"
+            fi
+          done
+          sha256sum "$deb" | tee "dist/${THEOS_PACKAGE_SCHEME}/sha256.txt"
+
+      - name: Upload DEB and audit records
+        uses: actions/upload-artifact@v4
+        with:
+          name: Velvet2-iOS15-${{ matrix.scheme }}
+          path: dist/${{ matrix.scheme }}/
+          if-no-files-found: error

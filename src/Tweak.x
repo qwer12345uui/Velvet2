@@ -181,10 +181,54 @@ Velvet2PrefsManager *prefsManager;
 -(void)_recycleViewIfNecessary:(id)arg1 withDataSource:(id)arg2{}
 %end
 
+// WidgetKit class names are intentionally checked at runtime. Do not replace
+// these scoped hooks with generic UIView/UILabel hooks: that would affect every
+// SpringBoard surface and raises the risk of a respring loop.
+%group Velvet2LegacyWidgetPlatter
+%hook WGWidgetPlatterView
+-(void)layoutSubviews {
+    %orig;
+    [[Velvet2WidgetStyler sharedInstance] applyStyleToWidgetHost:self];
+}
+%end
+%end
+
+%group Velvet2WidgetHosting
+%hook WGWidgetHostingView
+-(void)layoutSubviews {
+    %orig;
+    [[Velvet2WidgetStyler sharedInstance] applyStyleToWidgetHost:self];
+}
+%end
+%end
+
+%group Velvet2PrivateWidgetHosting
+%hook _WGWidgetHostingView
+-(void)layoutSubviews {
+    %orig;
+    [[Velvet2WidgetStyler sharedInstance] applyStyleToWidgetHost:self];
+}
+%end
+%end
+
+%group Velvet2WidgetContainer
+%hook WGWidgetContainerView
+-(void)layoutSubviews {
+    %orig;
+    [[Velvet2WidgetStyler sharedInstance] applyStyleToWidgetHost:self];
+}
+%end
+%end
+
 %ctor {
     prefsManager = [NSClassFromString(@"Velvet2PrefsManager") sharedInstance];
 
     if ([[prefsManager objectForKey:@"enabled"] boolValue]) {
         %init;
+
+        if (NSClassFromString(@"WGWidgetPlatterView")) %init(Velvet2LegacyWidgetPlatter);
+        if (NSClassFromString(@"WGWidgetHostingView")) %init(Velvet2WidgetHosting);
+        if (NSClassFromString(@"_WGWidgetHostingView")) %init(Velvet2PrivateWidgetHosting);
+        if (NSClassFromString(@"WGWidgetContainerView")) %init(Velvet2WidgetContainer);
     }
 }
