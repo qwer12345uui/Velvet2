@@ -39,7 +39,10 @@ jobs:
           curl --fail --location --silent --show-error \
             "https://github.com/L1ghtmann/llvm-project/releases/download/test-210562a/iOSToolchain-x86_64.tar.xz" \
             | tar -xJ -C "$THEOS/toolchain"
-          THEOS="$THEOS" "$THEOS/bin/install-sdk" 15.6
+          mkdir -p "$THEOS/sdks"
+          curl --fail --location --silent --show-error \
+            "https://github.com/theos/sdks/releases/download/master-146e41f/iPhoneOS15.6.sdk.tar.xz" \
+            | tar -xJ -C "$THEOS/sdks"
           test -x "$THEOS/toolchain/linux/iphone/bin/clang"
           test -d "$THEOS/sdks/iPhoneOS15.6.sdk"
 
