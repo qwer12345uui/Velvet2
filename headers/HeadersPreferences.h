@@ -1,7 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <Preferences/PSSpecifier.h>
 #import <AudioToolbox/AudioServices.h>
-#import <rootless.h>
+#import "Velvet2PathCompat.h"
 
 #import "CoreServices.h"
 #import "Log.h"
@@ -29,5 +29,7 @@
 #import "Velvet2/Velvet2SettingsController.h"
 #import "Velvet2/Velvet2Slider.h"
 #import "Velvet2/Velvet2Switch.h"
+#import "Velvet2/Velvet2WidgetSettingsController.h"
+#import "Velvet2/Velvet2WidgetStyler.h"
 
 #define kVelvetColor [UIColor colorWithRed: 0.38 green: 0.76 blue: 1.00 alpha: 1.00]
